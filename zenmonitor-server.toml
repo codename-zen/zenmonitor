@@ -1,0 +1,16 @@
+# ZenMonitor Server Configuration
+
+listen_addr = "0.0.0.0:3000"
+database_path = "zenmonitor.db"
+
+# Check intervals (seconds)
+http_check_interval = 60
+ping_check_interval = 30
+tcp_check_interval = 60
+ssl_check_interval = 3600
+
+# HTTP request timeout
+http_timeout = 10
+
+# API key for agent authentication
+agent_api_key = "change-me-in-production"

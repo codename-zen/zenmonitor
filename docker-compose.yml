@@ -1,0 +1,79 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# ZenMonitor Server - Docker Compose
+# Copyright (c) 2024 ZenLabsAI - https://zenlabs.ai
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  # ── ZenMonitor Server ────────────────────────────────────────────────────
+  zenmonitor-server:
+    image: ghcr.io/zenlabsai/zenmonitor-server:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: server
+    container_name: zenmonitor-server
+    restart: unless-stopped
+    ports:
+      - "${ZENMONITOR_PORT:-3000}:3000"
+    volumes:
+      # Persistent database storage
+      - zenmonitor-data:/data
+      # Configuration file (mount your own or use environment variables)
+      - ./zenmonitor-server.toml:/app/zenmonitor-server.toml:ro
+    environment:
+      - RUST_LOG=${RUST_LOG:-zenmonitor_server=info,tower_http=info}
+      - ZENMONITOR_CONFIG=/app/zenmonitor-server.toml
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/monitors"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - zenmonitor-net
+    # Security: drop all capabilities, add only what's needed
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_RAW    # Required for ICMP ping monitoring
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 64M
+
+  # ── Reverse Proxy (optional - uncomment to enable) ──────────────────────
+  # caddy:
+  #   image: caddy:2-alpine
+  #   container_name: zenmonitor-caddy
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./Caddyfile:/etc/caddy/Caddyfile:ro
+  #     - caddy-data:/data
+  #     - caddy-config:/config
+  #   networks:
+  #     - zenmonitor-net
+  #   depends_on:
+  #     zenmonitor-server:
+  #       condition: service_healthy
+
+# ── Volumes ────────────────────────────────────────────────────────────────
+volumes:
+  zenmonitor-data:
+    driver: local
+  # caddy-data:
+  #   driver: local
+  # caddy-config:
+  #   driver: local
+
+# ── Networks ───────────────────────────────────────────────────────────────
+networks:
+  zenmonitor-net:
+    driver: bridge

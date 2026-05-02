@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZenMonitor - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        zen: {
+                            bg: '#0f1117',
+                            card: '#1a1d2e',
+                            border: '#2a2d3e',
+                            accent: '#6366f1',
+                            success: '#10b981',
+                            warning: '#f59e0b',
+                            danger: '#ef4444',
+                            text: '#e2e8f0',
+                            muted: '#94a3b8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0f1117; }
+        .status-up { color: #10b981; }
+        .status-down { color: #ef4444; }
+        .status-degraded { color: #f59e0b; }
+        .status-unknown { color: #94a3b8; }
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .card-hover:hover {
+            border-color: #6366f1;
+            transform: translateY(-1px);
+            transition: all 0.2s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-zen-text">
+    <!-- Navigation -->
+    <nav class="border-b border-zen-border bg-zen-card/50 backdrop-blur-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-zen-accent rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-sm">Z</span>
+                    </div>
+                    <h1 class="text-xl font-bold text-white">ZenMonitor</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="connection-status" class="flex items-center text-sm text-zen-muted">
+                        <span class="w-2 h-2 rounded-full bg-zen-success mr-2 pulse-dot"></span>
+                        Connected
+                    </span>
+                    <button onclick="openAddMonitorModal()" class="px-4 py-2 bg-zen-accent hover:bg-indigo-600 text-white rounded-lg text-sm font-medium transition-colors">
+                        + Add Monitor
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-zen-card border border-zen-border rounded-xl p-4">
+                <p class="text-zen-muted text-sm">Total Monitors</p>
+                <p id="stat-total" class="text-2xl font-bold text-white mt-1">0</p>
+            </div>
+            <div class="bg-zen-card border border-zen-border rounded-xl p-4">
+                <p class="text-zen-muted text-sm">Up</p>
+                <p id="stat-up" class="text-2xl font-bold text-zen-success mt-1">0</p>
+            </div>
+            <div class="bg-zen-card border border-zen-border rounded-xl p-4">
+                <p class="text-zen-muted text-sm">Down</p>
+                <p id="stat-down" class="text-2xl font-bold text-zen-danger mt-1">0</p>
+            </div>
+            <div class="bg-zen-card border border-zen-border rounded-xl p-4">
+                <p class="text-zen-muted text-sm">Agents Online</p>
+                <p id="stat-agents" class="text-2xl font-bold text-white mt-1">0</p>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex space-x-1 mb-6 border-b border-zen-border">
+            <button onclick="switchTab('monitors')" id="tab-monitors" class="px-4 py-2 text-sm font-medium text-zen-accent border-b-2 border-zen-accent">
+                Monitors
+            </button>
+            <button onclick="switchTab('agents')" id="tab-agents" class="px-4 py-2 text-sm font-medium text-zen-muted hover:text-white border-b-2 border-transparent">
+                Agents
+            </button>
+            <button onclick="switchTab('charts')" id="tab-charts" class="px-4 py-2 text-sm font-medium text-zen-muted hover:text-white border-b-2 border-transparent">
+                Charts
+            </button>
+        </div>
+
+        <!-- Monitors Tab -->
+        <div id="panel-monitors">
+            <div id="monitors-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Monitor cards will be inserted here -->
+                <div class="bg-zen-card border border-zen-border border-dashed rounded-xl p-8 flex items-center justify-center">
+                    <p class="text-zen-muted text-sm">No monitors configured. Click "Add Monitor" to get started.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Agents Tab -->
+        <div id="panel-agents" class="hidden">
+            <div id="agents-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-zen-card border border-zen-border border-dashed rounded-xl p-8 flex items-center justify-center">
+                    <p class="text-zen-muted text-sm">No agents connected. Deploy the zenmonitor-agent to your servers.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Tab -->
+        <div id="panel-charts" class="hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-zen-card border border-zen-border rounded-xl p-4">
+                    <h3 class="text-white font-medium mb-4">Response Times (last 30 checks)</h3>
+                    <canvas id="chart-response-times"></canvas>
+                </div>
+                <div class="bg-zen-card border border-zen-border rounded-xl p-4">
+                    <h3 class="text-white font-medium mb-4">Agent CPU Usage</h3>
+                    <canvas id="chart-cpu-usage"></canvas>
+                </div>
+                <div class="bg-zen-card border border-zen-border rounded-xl p-4">
+                    <h3 class="text-white font-medium mb-4">Agent Memory Usage</h3>
+                    <canvas id="chart-memory-usage"></canvas>
+                </div>
+                <div class="bg-zen-card border border-zen-border rounded-xl p-4">
+                    <h3 class="text-white font-medium mb-4">Uptime History</h3>
+                    <canvas id="chart-uptime"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Monitor Modal -->
+    <div id="modal-add-monitor" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div class="bg-zen-card border border-zen-border rounded-2xl p-6 w-full max-w-md mx-4">
+            <h2 class="text-xl font-bold text-white mb-4">Add Monitor</h2>
+            <form id="form-add-monitor" onsubmit="submitAddMonitor(event)">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm text-zen-muted mb-1">Name</label>
+                        <input type="text" name="name" required
+                            class="w-full bg-zen-bg border border-zen-border rounded-lg px-3 py-2 text-white focus:border-zen-accent focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-zen-muted mb-1">Type</label>
+                        <select name="monitor_type" required
+                            class="w-full bg-zen-bg border border-zen-border rounded-lg px-3 py-2 text-white focus:border-zen-accent focus:outline-none">
+                            <option value="http">HTTP</option>
+                            <option value="https">HTTPS</option>
+                            <option value="ping">Ping (ICMP)</option>
+                            <option value="tcp">TCP Port</option>
+                            <option value="ssl">SSL Certificate</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-zen-muted mb-1">Target (URL or hostname)</label>
+                        <input type="text" name="target" required placeholder="https://example.com or 192.168.1.1"
+                            class="w-full bg-zen-bg border border-zen-border rounded-lg px-3 py-2 text-white focus:border-zen-accent focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-zen-muted mb-1">Port (optional, for TCP)</label>
+                        <input type="number" name="port" placeholder="443"
+                            class="w-full bg-zen-bg border border-zen-border rounded-lg px-3 py-2 text-white focus:border-zen-accent focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-zen-muted mb-1">Check Interval (seconds)</label>
+                        <input type="number" name="interval_seconds" value="60" min="10"
+                            class="w-full bg-zen-bg border border-zen-border rounded-lg px-3 py-2 text-white focus:border-zen-accent focus:outline-none">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeAddMonitorModal()"
+                        class="px-4 py-2 text-zen-muted hover:text-white transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="px-4 py-2 bg-zen-accent hover:bg-indigo-600 text-white rounded-lg font-medium transition-colors">
+                        Create Monitor
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+[workspace]
+members = ["server", "agent"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["ZenLabsAI <engineering@zenlabs.ai>"]
+license = "MIT"
+repository = "https://github.com/zenlabsai/zenmonitor"
+homepage = "https://zenlabs.ai/zenmonitor"
+description = "Lightweight infrastructure monitoring with HTTP/Ping/TCP checks and VPS agent metrics"
+keywords = ["monitoring", "infrastructure", "observability", "uptime", "metrics"]
+categories = ["command-line-utilities", "network-programming"]
+rust-version = "1.75"
+
+[workspace.dependencies]
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+toml = "0.8"
+anyhow = "1"

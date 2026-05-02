@@ -1,0 +1,7 @@
+# ZenMonitor Agent Configuration
+
+agent_id = "agent-001"
+server_url = "http://localhost:3000"
+api_key = "change-me-in-production"
+report_interval = 30
+top_processes = 10
