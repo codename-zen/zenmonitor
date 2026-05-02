@@ -1,7 +1,7 @@
 # ZenMonitor Server Configuration
 
 listen_addr = "0.0.0.0:3000"
-database_path = "zenmonitor.db"
+database_path = "/data/zenmonitor.db"
 
 # Check intervals (seconds)
 http_check_interval = 60
