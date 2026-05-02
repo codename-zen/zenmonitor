@@ -8,8 +8,22 @@ FROM rust:1.85-bookworm AS builder
 
 WORKDIR /build
 
-# Copy manifests
+# Limit parallel jobs to avoid OOM on low-memory servers
+ENV CARGO_BUILD_JOBS=2
+ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
+
+# Copy manifests first for dependency caching
 COPY Cargo.toml Cargo.lock ./
+
+# Create dummy src files for dependency pre-build cache
+RUN mkdir -p server/src agent/src && \
+    echo "fn main() {}" > server/src/main.rs && \
+    echo "fn main() {}" > agent/src/main.rs && \
+    cargo build --release --package zenmonitor-server 2>/dev/null || true && \
+    cargo build --release --package zenmonitor-agent 2>/dev/null || true && \
+    rm -rf server/src agent/src
+
+# Copy actual source
 COPY server/ server/
 COPY agent/ agent/
 
